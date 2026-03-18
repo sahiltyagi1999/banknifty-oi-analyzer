@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bank Nifty OI Analyzer</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Bebas+Neue&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">OI <em>ANALYZER</em></div>
+    <div class="live-tag">
+      <div class="live-dot"></div>
+      <span id="clockEl">--:-- IST</span>
+    </div>
+  </header>
+
+  <!-- API KEY -->
+  <div class="api-section">
+    <div class="api-label">// ANTHROPIC API KEY</div>
+    <div class="api-input-wrap">
+      <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" oninput="onApiKeyChange()">
+      <button class="api-eye" id="eyeBtn" onclick="toggleApiVisibility()" title="Show/Hide">👁</button>
+    </div>
+    <button class="api-save-btn" onclick="saveApiKey()">SAVE KEY</button>
+    <span class="api-status" id="apiStatus"></span>
+    <div class="api-hint">
+      Key is saved in your browser only — never sent anywhere except Anthropic.
+      Get a free key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div id="uploadSection">
+    <div class="upload-zone" id="dropZone">
+      <span class="upload-icon">📊</span>
+      <div class="upload-title">DROP NSE CSV HERE</div>
+      <div class="upload-sub">Upload the Bank Nifty options chain CSV downloaded from NSE</div>
+      <label class="upload-btn" for="fileInput">CHOOSE FILE</label>
+      <input type="file" id="fileInput" accept=".csv">
+    </div>
+
+    <div class="how-to" style="margin-top:20px">
+      <div class="how-to-title">// How to Download CSV from NSE</div>
+      <ol>
+        <li>Go to <strong>nseindia.com/option-chain</strong></li>
+        <li>Select <strong>BANKNIFTY</strong> from the dropdown</li>
+        <li>Choose the <strong>nearest weekly expiry</strong> date</li>
+        <li>Click the <strong>Download (CSV)</strong> button at the top right of the table</li>
+        <li>Upload that CSV file here — everything is calculated automatically</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard">
+
+    <!-- BIG SIGNAL -->
+    <div class="signal-banner" id="signalBanner">
+      <div class="sig-left">
+        <div class="sig-tag">// TODAY'S MARKET BIAS</div>
+        <div class="sig-word" id="sigWord">--</div>
+      </div>
+      <div class="sig-right">
+        <div class="sig-pcr-val" id="pcrBig">--</div>
+        <div class="sig-pcr-label">PUT CALL RATIO</div>
+      </div>
+    </div>
+
+    <!-- METRICS -->
+    <div class="metrics" id="metricsGrid"></div>
+
+    <!-- OI CHART + LEVELS -->
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-title">// Open Interest by Strike</div>
+        <div class="oi-bars" id="oiChart"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">// Key Levels</div>
+        <div class="level-list" id="levelList"></div>
+      </div>
+    </div>
+
+    <!-- AI SIGNAL -->
+    <div class="ai-panel">
+      <div class="panel-title">// AI Signal & Trade Plan</div>
+      <div class="ai-loading" id="aiLoading">
+        <div class="spin"></div>
+        GENERATING SIGNAL...
+      </div>
+      <div class="ai-content" id="aiContent">
+        <div class="trade-scenarios" id="tradeScenarios"></div>
+        <div class="analysis-text" id="aiAnalysis"></div>
+        <div class="risk-box" id="riskBox"></div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-bottom:20px">
+      <button class="reset-btn" onclick="reset()">UPLOAD NEW CSV</button>
+    </div>
+
+    <div class="disclaimer">
+      This tool is for educational purposes only. Not SEBI registered investment advice.<br>
+      Always use stop losses. Never trade more capital than you can afford to lose.
+    </div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
