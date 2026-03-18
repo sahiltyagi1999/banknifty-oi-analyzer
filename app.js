@@ -288,12 +288,12 @@ function renderDashboard(data) {
   document.getElementById('uploadSection').style.display = 'none';
   document.getElementById('dashboard').classList.add('show');
 
-  generateAISignal(data, bias);
+  generateAISignal(data);
 }
 
 // ── AI SIGNAL via Claude API ──
-async function generateAISignal(data, bias) {
-  const { totalCallOI, totalPutOI, pcr, maxCallRow, maxPutRow, atmRow } = data;
+async function generateAISignal(data) {
+  const { rows, totalCallOI, totalPutOI, pcr, maxCallRow, maxPutRow, atmRow } = data;
 
   const liveKey  = document.getElementById('apiKeyInput').value.trim();
   const keyToUse = liveKey || apiKey;
@@ -301,28 +301,67 @@ async function generateAISignal(data, bias) {
   if (!keyToUse || !keyToUse.startsWith('sk-ant-')) {
     document.getElementById('aiLoading').innerHTML =
       `<span style="color:var(--warn);font-family:'JetBrains Mono',monospace;font-size:0.8rem">
-        ⚠ Enter your Anthropic API key above to get AI signal — OI data is still valid without it.
+        ⚠ Enter your Anthropic API key above to get the full AI trade plan — OI data above is still valid.
       </span>`;
     return;
   }
 
-  const prompt = `You are a Bank Nifty intraday trading expert. Analyze this options chain data and give a trading signal.
+  // Build top-10 strikes by OI for richer context
+  const top10 = [...rows]
+    .sort((a, b) => (b.callOI + b.putOI) - (a.callOI + a.putOI))
+    .slice(0, 10)
+    .map(r => `  Strike ${r.strike}: CallOI=${r.callOI.toLocaleString()}, PutOI=${r.putOI.toLocaleString()}, CallChg=${r.callChg > 0 ? '+' : ''}${r.callChg}, PutChg=${r.putChg > 0 ? '+' : ''}${r.putChg}`)
+    .join('\n');
 
-OPTIONS CHAIN DATA:
-- PCR (Put-Call Ratio): ${pcr.toFixed(2)}
-- Overall Bias from PCR: ${bias}
-- ATM Strike (current price area): ${atmRow.strike}
-- Max Call OI Strike (Resistance): ${maxCallRow.strike} — OI: ${maxCallRow.callOI.toLocaleString()}
-- Max Put OI Strike (Support): ${maxPutRow.strike} — OI: ${maxPutRow.putOI.toLocaleString()}
-- Total Call OI: ${totalCallOI.toLocaleString()}
-- Total Put OI: ${totalPutOI.toLocaleString()}
+  const prompt = `You are an expert Bank Nifty intraday options trader with 15 years of experience. Analyze this live options chain data and give a precise, actionable trade plan.
 
-Respond ONLY with valid JSON (no markdown):
+=== OPTIONS CHAIN SNAPSHOT ===
+PCR (Put-Call Ratio): ${pcr.toFixed(2)}
+ATM Strike (spot price area): ${atmRow.strike}
+Max Call OI Strike (KEY RESISTANCE): ${maxCallRow.strike}  [OI: ${maxCallRow.callOI.toLocaleString()}, Chg: ${maxCallRow.callChg > 0 ? '+' : ''}${maxCallRow.callChg}]
+Max Put OI Strike (KEY SUPPORT): ${maxPutRow.strike}  [OI: ${maxPutRow.putOI.toLocaleString()}, Chg: ${maxPutRow.putChg > 0 ? '+' : ''}${maxPutRow.putChg}]
+Total Call OI: ${totalCallOI.toLocaleString()}
+Total Put OI: ${totalPutOI.toLocaleString()}
+
+Top 10 strikes by total OI:
+${top10}
+
+=== YOUR TASK ===
+Based on this OI data give me ONE primary trade recommendation (the highest conviction setup right now), PLUS full bull and bear conditional plans.
+
+Rules for your response:
+- primary_direction must be exactly one of: "BUY CALL", "BUY PUT", or "WAIT"
+- All strike prices must be realistic Bank Nifty option strikes (multiples of 100)
+- Entry, SL, target must all be INDEX LEVELS (not option premium prices)
+- entry_zone: exact index level range to enter (e.g. "55050–55100")
+- stop_loss: index level where the trade is invalidated (hard SL)
+- target_1: first exit level (partial profit)
+- target_2: final exit level (full exit)
+- risk_reward: ratio string like "1:2.5"
+- entry_trigger: the specific price action or condition that must happen BEFORE entering (e.g. "break and close above 55200 on 5-min candle")
+- exit_rule: exact condition to exit early (e.g. "exit if 15-min candle closes below 55000")
+- reasoning: 4-5 sentences explaining EXACTLY WHY — reference specific OI levels, PCR interpretation, which strikes are walls, what the max pain is, and what smart money positioning suggests
+- bull_scenario: what happens if bulls take control — entry, SL, target with specific numbers
+- bear_scenario: what happens if bears take control — entry, SL, target with specific numbers
+- oi_analysis: 3-4 sentences on what the OI distribution tells us about WHERE market makers want price to go, mention max pain, OI walls, and any notable OI changes
+- risk_warning: the single biggest trap or risk specific to THIS setup today
+
+Respond ONLY with valid JSON, no markdown, no extra text:
 {
-  "bull_scenario": "If price does X, buy at Y with SL at Z, target A (specific numbers)",
-  "bear_scenario": "If price does X, sell at Y with SL at Z, target A (specific numbers)",
-  "analysis": "3-4 sentences explaining today's OI setup, what the PCR means, where the pain point is, and what to watch for. Be specific with strike numbers.",
-  "risk_warning": "One specific risk or trap to watch today based on this data"
+  "primary_direction": "BUY CALL" | "BUY PUT" | "WAIT",
+  "suggested_strike": 55000,
+  "entry_zone": "55050–55100",
+  "stop_loss": 54800,
+  "target_1": 55400,
+  "target_2": 55700,
+  "risk_reward": "1:2.5",
+  "entry_trigger": "...",
+  "exit_rule": "...",
+  "reasoning": "...",
+  "bull_scenario": "...",
+  "bear_scenario": "...",
+  "oi_analysis": "...",
+  "risk_warning": "..."
 }`;
 
   try {
@@ -336,7 +375,7 @@ Respond ONLY with valid JSON (no markdown):
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 800,
+        max_tokens: 1200,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -347,18 +386,7 @@ Respond ONLY with valid JSON (no markdown):
     const raw = d.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
     const r   = JSON.parse(raw);
 
-    document.getElementById('tradeScenarios').innerHTML = `
-      <div class="scenario bull-s">
-        <div class="scenario-tag">// BULL SCENARIO</div>
-        <div class="scenario-text">${r.bull_scenario}</div>
-      </div>
-      <div class="scenario bear-s">
-        <div class="scenario-tag">// BEAR SCENARIO</div>
-        <div class="scenario-text">${r.bear_scenario}</div>
-      </div>`;
-
-    document.getElementById('aiAnalysis').textContent = r.analysis;
-    document.getElementById('riskBox').innerHTML = `⚠ ${r.risk_warning}`;
+    renderTradeplan(r);
 
     document.getElementById('aiLoading').style.display = 'none';
     document.getElementById('aiContent').classList.add('show');
@@ -370,6 +398,112 @@ Respond ONLY with valid JSON (no markdown):
         AI signal unavailable (${e.message || 'check API key'}) — OI data above is still valid
       </span>`;
   }
+}
+
+function renderTradeplan(r) {
+  const dir = (r.primary_direction || 'WAIT').toUpperCase();
+  const isBull = dir === 'BUY CALL';
+  const isBear = dir === 'BUY PUT';
+  const cardClass = isBull ? 'call-trade' : isBear ? 'put-trade' : 'wait-trade';
+  const entColor  = isBull ? 'bull' : isBear ? 'bear' : 'warn';
+
+  // ── Primary trade card ──
+  document.getElementById('primaryTrade').innerHTML = `
+    <div class="primary-trade ${cardClass}">
+      <div class="pt-left">
+        <div class="pt-action">// PRIMARY SIGNAL</div>
+        <div class="pt-type">${dir}</div>
+        <div class="pt-sub">
+          ${isBull ? `Buy <strong>${r.suggested_strike} CE</strong>` : isBear ? `Buy <strong>${r.suggested_strike} PE</strong>` : 'No clear edge — stand aside'}
+          &nbsp;·&nbsp; R:R <strong>${r.risk_reward || '—'}</strong>
+        </div>
+      </div>
+      <div class="pt-right">
+        <div class="pt-stat">
+          <div class="pt-stat-label">ENTRY ZONE</div>
+          <div class="pt-stat-val ${entColor}">${r.entry_zone || '—'}</div>
+        </div>
+        <div class="pt-stat">
+          <div class="pt-stat-label">STOP LOSS</div>
+          <div class="pt-stat-val bear">${r.stop_loss ? r.stop_loss.toLocaleString() : '—'}</div>
+        </div>
+        <div class="pt-stat">
+          <div class="pt-stat-label">TARGET 1</div>
+          <div class="pt-stat-val bull">${r.target_1 ? r.target_1.toLocaleString() : '—'}</div>
+        </div>
+        <div class="pt-stat">
+          <div class="pt-stat-label">TARGET 2</div>
+          <div class="pt-stat-val bull">${r.target_2 ? r.target_2.toLocaleString() : '—'}</div>
+        </div>
+      </div>
+    </div>`;
+
+  // ── Entry / Exit rules table ──
+  document.getElementById('tradeTableWrap').innerHTML = `
+    <table class="trade-table">
+      <thead>
+        <tr>
+          <th>PARAMETER</th>
+          <th>VALUE</th>
+          <th>WHY / RULE</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="label-col">ENTRY TRIGGER</td>
+          <td class="val-col ${entColor}">${r.entry_zone || '—'}</td>
+          <td class="reason-col">${r.entry_trigger || '—'}</td>
+        </tr>
+        <tr>
+          <td class="label-col">STOP LOSS</td>
+          <td class="val-col bear">${r.stop_loss ? r.stop_loss.toLocaleString() : '—'}</td>
+          <td class="reason-col">Hard invalidation level — exit immediately if price closes a candle beyond this</td>
+        </tr>
+        <tr>
+          <td class="label-col">TARGET 1 (50% exit)</td>
+          <td class="val-col bull">${r.target_1 ? r.target_1.toLocaleString() : '—'}</td>
+          <td class="reason-col">Book half position here — move SL to cost for remaining lot</td>
+        </tr>
+        <tr>
+          <td class="label-col">TARGET 2 (full exit)</td>
+          <td class="val-col bull">${r.target_2 ? r.target_2.toLocaleString() : '—'}</td>
+          <td class="reason-col">Full exit — do not hold options past 3:15 PM</td>
+        </tr>
+        <tr>
+          <td class="label-col">EARLY EXIT RULE</td>
+          <td class="val-col warn">TIME / PRICE</td>
+          <td class="reason-col">${r.exit_rule || '—'}</td>
+        </tr>
+      </tbody>
+    </table>`;
+
+  // ── Bull / Bear scenarios ──
+  document.getElementById('tradeScenarios').innerHTML = `
+    <div class="scenario bull-s">
+      <div class="scenario-tag">// IF BULLS WIN — CALL TRADE</div>
+      <div class="scenario-text">${r.bull_scenario}</div>
+    </div>
+    <div class="scenario bear-s">
+      <div class="scenario-tag">// IF BEARS WIN — PUT TRADE</div>
+      <div class="scenario-text">${r.bear_scenario}</div>
+    </div>`;
+
+  // ── OI analysis ──
+  document.getElementById('aiAnalysis').textContent = r.oi_analysis;
+
+  // ── Why this trade ──
+  document.getElementById('whyBox').innerHTML = `
+    <div class="why-box-title">// WHY THIS TRADE — OI REASONING</div>
+    ${escHtml(r.reasoning)}`;
+
+  // ── Risk warning ──
+  document.getElementById('riskBox').innerHTML = `⚠ TRAP TO AVOID: ${escHtml(r.risk_warning)}`;
+}
+
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // ── RESET ──
