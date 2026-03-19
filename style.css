@@ -186,6 +186,45 @@ header {
 .api-hint a { color: var(--accent); text-decoration: none; }
 .api-hint a:hover { text-decoration: underline; }
 
+/* ── INSTRUMENT SELECTOR ── */
+.instrument-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.inst-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 2px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.inst-tabs {
+  display: flex;
+  gap: 8px;
+}
+.inst-tab {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+  padding: 9px 22px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.inst-tab:hover { border-color: var(--accent); color: var(--accent); }
+.inst-tab.active {
+  background: rgba(0,200,255,0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: var(--glow-b);
+}
+
 /* ── UPLOAD ZONE ── */
 .upload-zone {
   border: 1px dashed var(--border);

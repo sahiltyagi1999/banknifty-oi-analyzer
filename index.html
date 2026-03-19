@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bank Nifty OI Analyzer</title>
+<title>NSE OI Analyzer — Nifty & Bank Nifty</title>
 <link rel="stylesheet" href="style.css">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Bebas+Neue&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -34,12 +34,21 @@
     </div>
   </div>
 
+  <!-- INSTRUMENT SELECTOR -->
+  <div class="instrument-bar">
+    <div class="inst-label">// SELECT INSTRUMENT</div>
+    <div class="inst-tabs">
+      <button class="inst-tab active" id="tabNifty"    onclick="setInstrument('NIFTY')">NIFTY 50</button>
+      <button class="inst-tab"        id="tabBankNifty" onclick="setInstrument('BANKNIFTY')">BANK NIFTY</button>
+    </div>
+  </div>
+
   <!-- UPLOAD -->
   <div id="uploadSection">
     <div class="upload-zone" id="dropZone">
       <span class="upload-icon">📊</span>
       <div class="upload-title">DROP NSE CSV HERE</div>
-      <div class="upload-sub">Upload the Bank Nifty options chain CSV downloaded from NSE</div>
+      <div class="upload-sub" id="uploadSub">Upload the Nifty 50 options chain CSV downloaded from NSE</div>
       <label class="upload-btn" for="fileInput">CHOOSE FILE</label>
       <input type="file" id="fileInput" accept=".csv">
     </div>
@@ -48,7 +57,7 @@
       <div class="how-to-title">// How to Download CSV from NSE</div>
       <ol>
         <li>Go to <strong>nseindia.com/option-chain</strong></li>
-        <li>Select <strong>BANKNIFTY</strong> from the dropdown</li>
+        <li>Select <strong id="howToInstrument">NIFTY</strong> from the dropdown</li>
         <li>Choose the <strong>nearest weekly expiry</strong> date</li>
         <li>Click the <strong>Download (CSV)</strong> button at the top right of the table</li>
         <li>Upload that CSV file here — everything is calculated automatically</li>
@@ -62,7 +71,7 @@
     <!-- BIG SIGNAL -->
     <div class="signal-banner" id="signalBanner">
       <div class="sig-left">
-        <div class="sig-tag">// TODAY'S MARKET BIAS</div>
+        <div class="sig-tag" id="sigTag">// TODAY'S MARKET BIAS</div>
         <div class="sig-word" id="sigWord">--</div>
       </div>
       <div class="sig-right">

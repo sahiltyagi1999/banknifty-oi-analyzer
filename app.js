@@ -1,3 +1,21 @@
+// ── INSTRUMENT STATE ──
+let instrument = 'NIFTY'; // 'NIFTY' | 'BANKNIFTY'
+
+// Strike range per instrument (index levels)
+const STRIKE_RANGE = {
+  NIFTY:     { min: 15000, max: 35000 },
+  BANKNIFTY: { min: 30000, max: 90000 },
+};
+
+function setInstrument(inst) {
+  instrument = inst;
+  document.getElementById('tabNifty').classList.toggle('active',     inst === 'NIFTY');
+  document.getElementById('tabBankNifty').classList.toggle('active', inst === 'BANKNIFTY');
+  const name = inst === 'NIFTY' ? 'Nifty 50' : 'Bank Nifty';
+  document.getElementById('uploadSub').textContent     = `Upload the ${name} options chain CSV downloaded from NSE`;
+  document.getElementById('howToInstrument').textContent = inst === 'NIFTY' ? 'NIFTY' : 'BANKNIFTY';
+}
+
 // ── API KEY MANAGEMENT ──
 let apiKey = "";
 
@@ -178,12 +196,13 @@ function parseCSV(text) {
     if (strikeCol !== -1 && strikeCol < cols.length) {
       strike = numVal(cols[strikeCol]);
     }
-    // If still not valid, scan for a round number in the index range
-    if (!strike || strike < 30000 || strike > 120000) {
+    // If still not valid, scan for a round number in the instrument's strike range
+    const sr = STRIKE_RANGE[instrument];
+    if (!strike || strike < sr.min || strike > sr.max) {
       strike = NaN;
       for (let c = 0; c < cols.length; c++) {
         const v = numVal(cols[c]);
-        if (v >= 30000 && v <= 120000 && v % 100 === 0) {
+        if (v >= sr.min && v <= sr.max && v % 50 === 0) {
           strike = v;
           break;
         }
@@ -284,6 +303,8 @@ function renderDashboard(data) {
   banner.className = `signal-banner ${biasClass}`;
   document.getElementById("sigWord").textContent = bias;
   document.getElementById("pcrBig").textContent = pcr.toFixed(2);
+  document.getElementById("sigTag").textContent =
+    `// ${instrument === 'NIFTY' ? 'NIFTY 50' : 'BANK NIFTY'} — TODAY'S BIAS`;
 
   // Metrics grid
   const pcrColor =
@@ -431,9 +452,13 @@ async function generateAISignal(data) {
     )
     .join("\n");
 
-  const prompt = `You are an expert Bank Nifty intraday options trader with 15 years of experience. Analyze this live options chain data and give a precise, actionable trade plan.
+  const instName   = instrument === 'NIFTY' ? 'Nifty 50' : 'Bank Nifty';
+  const lotSize    = instrument === 'NIFTY' ? 75 : 15;
+  const strikeStep = instrument === 'NIFTY' ? 50 : 100;
 
-=== OPTIONS CHAIN SNAPSHOT ===
+  const prompt = `You are an expert ${instName} intraday options trader with 15 years of experience. Analyze this live options chain data and give a precise, actionable trade plan.
+
+=== INSTRUMENT: ${instName} (Lot size: ${lotSize}, Strike step: ${strikeStep}) ===
 PCR (Put-Call Ratio): ${pcr.toFixed(2)}
 ATM Strike (spot price area): ${atmRow.strike}
 Max Call OI Strike (KEY RESISTANCE): ${maxCallRow.strike}  [OI: ${maxCallRow.callOI.toLocaleString()}, Chg: ${maxCallRow.callChg > 0 ? "+" : ""}${maxCallRow.callChg}]
@@ -449,20 +474,20 @@ Based on this OI data give me ONE primary trade recommendation (the highest conv
 
 Rules for your response:
 - primary_direction must be exactly one of: "BUY CALL", "BUY PUT", or "WAIT"
-- All strike prices must be realistic Bank Nifty option strikes (multiples of 100)
+- All strike prices must be realistic ${instName} option strikes (multiples of ${strikeStep})
 - Entry, SL, target must all be INDEX LEVELS (not option premium prices)
-- entry_zone: exact index level range to enter (e.g. "55050–55100")
+- entry_zone: exact index level range to enter (e.g. "${atmRow.strike}–${atmRow.strike + strikeStep}")
 - stop_loss: index level where the trade is invalidated (hard SL)
 - target_1: first exit level (partial profit)
 - target_2: final exit level (full exit)
 - risk_reward: ratio string like "1:2.5"
-- entry_trigger: the specific price action or condition that must happen BEFORE entering (e.g. "break and close above 55200 on 5-min candle")
-- exit_rule: exact condition to exit early (e.g. "exit if 15-min candle closes below 55000")
+- entry_trigger: the specific price action or condition that must happen BEFORE entering (e.g. "break and close above ${maxCallRow.strike} on 5-min candle")
+- exit_rule: exact condition to exit early (e.g. "exit if 15-min candle closes below ${maxPutRow.strike}")
 - reasoning: 4-5 sentences explaining EXACTLY WHY — reference specific OI levels, PCR interpretation, which strikes are walls, what the max pain is, and what smart money positioning suggests
 - bull_scenario: what happens if bulls take control — entry, SL, target with specific numbers
 - bear_scenario: what happens if bears take control — entry, SL, target with specific numbers
 - oi_analysis: 3-4 sentences on what the OI distribution tells us about WHERE market makers want price to go, mention max pain, OI walls, and any notable OI changes
-- risk_warning: the single biggest trap or risk specific to THIS setup today
+- risk_warning: the single biggest trap or risk specific to THIS ${instName} setup today
 
 Respond ONLY with valid JSON, no markdown, no extra text:
 {
@@ -640,4 +665,11 @@ function reset() {
   document.getElementById("aiLoading").innerHTML =
     '<div class="spin"></div> GENERATING SIGNAL...';
   document.getElementById("aiContent").classList.remove("show");
+  // clear rendered content so stale data doesn't flash on next upload
+  document.getElementById("primaryTrade").innerHTML    = "";
+  document.getElementById("tradeTableWrap").innerHTML  = "";
+  document.getElementById("tradeScenarios").innerHTML  = "";
+  document.getElementById("aiAnalysis").textContent    = "";
+  document.getElementById("whyBox").innerHTML          = "";
+  document.getElementById("riskBox").innerHTML         = "";
 }
