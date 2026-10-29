@@ -46,7 +46,7 @@ https://your-render-backend.onrender.com/health
 For local frontend, copy `frontend/.env.example` to `frontend/.env`:
 
 ```env
-FRONTEND_API_BASE_URL=http://localhost:10000
+BACKEND_BASE_URL=http://localhost:10000
 ```
 
 For Netlify, publish the `frontend/` folder. Because this is a static frontend and the build script has been removed, set the Render backend URL in the login screen's "Backend URL" field after deployment, or update `frontend/config.js` before deploying.

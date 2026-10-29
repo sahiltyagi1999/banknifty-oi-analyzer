@@ -33,6 +33,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 function getApiBase() {
   return (
     localStorage.getItem(API_BASE_KEY) ||
+    frontendEnv.BACKEND_BASE_URL ||
     frontendEnv.FRONTEND_API_BASE_URL ||
     CONFIG.apiBaseUrl ||
     "http://localhost:10000"
