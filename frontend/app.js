@@ -3,9 +3,9 @@ let authToken = localStorage.getItem("oi_auth_token") || "";
 let currentUser = localStorage.getItem("oi_username") || "";
 let latestSnapshot = null;
 let frontendEnv = {};
+let apiBaseOverride = "";
 
 const CONFIG = window.OI_ANALYZER_CONFIG || {};
-const API_BASE_KEY = "oi_api_base_url";
 const STRIKE_RANGE = {
   NIFTY: { min: 15000, max: 35000 },
   BANKNIFTY: { min: 30000, max: 90000 },
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function getApiBase() {
   return (
-    localStorage.getItem(API_BASE_KEY) ||
+    apiBaseOverride ||
     frontendEnv.BACKEND_BASE_URL ||
     frontendEnv.FRONTEND_API_BASE_URL ||
     CONFIG.apiBaseUrl ||
@@ -88,7 +88,7 @@ function bindLogin() {
     const apiBase = document.getElementById("apiBaseInput").value.trim().replace(/\/$/, "");
     const username = document.getElementById("loginUsername").value.trim();
     const password = document.getElementById("loginPassword").value;
-    if (apiBase) localStorage.setItem(API_BASE_KEY, apiBase);
+    if (apiBase) apiBaseOverride = apiBase;
 
     try {
       const res = await fetch(apiUrl("/api/login"), {
