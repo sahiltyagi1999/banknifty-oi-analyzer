@@ -440,14 +440,21 @@ Respond ONLY with valid JSON, no markdown, no extra text:
       }),
     });
 
-    const d = await resp.json();
+    const d = await readApiJson(resp);
     if (!resp.ok) throw new Error(d.error || "API error");
     if (d.error) throw new Error(d.error.message || "API error");
 
-    const raw = d.text
+    const raw = (d.text || "")
       .replace(/```json|```/g, "")
       .trim();
-    const r = JSON.parse(raw);
+    if (!raw) throw new Error("AI returned an empty trade plan.");
+
+    let r;
+    try {
+      r = JSON.parse(raw);
+    } catch (err) {
+      throw new Error("AI returned invalid JSON. Try again with the same CSV.");
+    }
 
     renderTradeplan(r);
 
@@ -459,6 +466,23 @@ Respond ONLY with valid JSON, no markdown, no extra text:
       `<span style="color:var(--warn);font-family:'JetBrains Mono',monospace;font-size:0.8rem">
         AI signal unavailable (${e.message || "check API key"}) — OI data above is still valid
       </span>`;
+  }
+}
+
+async function readApiJson(resp) {
+  const text = await resp.text();
+  if (!text.trim()) {
+    throw new Error(
+      `Empty response from /api/analyze (${resp.status}). Make sure the Python server is deployed, not only static files.`,
+    );
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    throw new Error(
+      `Non-JSON response from /api/analyze (${resp.status}). Check backend deploy logs.`,
+    );
   }
 }
 
