@@ -5,6 +5,7 @@ import json
 import os
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 import requests
 from bson import ObjectId
@@ -13,11 +14,11 @@ from flask_cors import CORS
 from pymongo import MongoClient, DESCENDING
 
 
-def load_env_file(path=".env"):
-    if not os.path.exists(path):
+def load_env_file(path):
+    if not path.exists():
         return
 
-    with open(path, "r", encoding="utf-8") as env_file:
+    with path.open("r", encoding="utf-8") as env_file:
         for line in env_file:
             line = line.strip()
             if not line or line.startswith("#") or "=" not in line:
@@ -26,7 +27,12 @@ def load_env_file(path=".env"):
             os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
-load_env_file()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+backend_dir = Path(BASE_DIR)
+repo_dir = backend_dir.parent
+load_env_file(repo_dir / ".env")
+load_env_file(backend_dir / ".env")
 
 APP_NAME = "banknifty-oi-analyzer"
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-6-luna")

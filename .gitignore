@@ -11,7 +11,7 @@
 
 # Environment
 .env
-backend/.env
+**/.env
 frontend/config.local.js
 
 # Python

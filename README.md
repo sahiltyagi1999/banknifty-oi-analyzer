@@ -14,16 +14,17 @@ banknifty-oi-analyzer/
 │   ├── index.html
 │   ├── app.js              # CSV parsing, dashboard rendering, history UI
 │   ├── style.css
+│   ├── .env.example
 │   └── config.js           # Generated/overridden during Netlify build
 ├── scripts/
-│   └── write_frontend_config.py
+│   └── write_frontend_config.js
 ├── render.yaml             # Render backend blueprint
 └── netlify.toml            # Netlify frontend config
 ```
 
 ## Backend Env
 
-Set these in Render, or copy `backend/.env.example` to `backend/.env` locally:
+Set these in Render, or copy `backend/.env.example` to `backend/.env` locally. The backend also reads a root `.env` for local convenience, but `.env` files are ignored and must not be committed.
 
 ```env
 OPENAI_API_KEY=your_openai_api_key
