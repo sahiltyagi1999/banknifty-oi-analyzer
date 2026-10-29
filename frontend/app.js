@@ -4,6 +4,7 @@ let currentUser = localStorage.getItem("oi_username") || "";
 let latestSnapshot = null;
 let frontendEnv = {};
 let activeHistoryId = "";
+let aiEnabled = false;
 
 const CONFIG = window.OI_ANALYZER_CONFIG || {};
 const STRIKE_RANGE = {
@@ -117,6 +118,12 @@ function getLoginErrorMessage(error) {
 function bindActions() {
   document.getElementById("logoutBtn").addEventListener("click", logout);
   document.getElementById("refreshHistoryBtn").addEventListener("click", loadHistory);
+  document.getElementById("aiToggle").addEventListener("change", (event) => {
+    aiEnabled = event.target.checked;
+    const state = document.getElementById("aiToggleState");
+    state.textContent = aiEnabled ? "On" : "Off";
+    state.className = aiEnabled ? "bull" : "";
+  });
   document.getElementById("uploadNewBtn").addEventListener("click", () => {
     const input = document.getElementById("fileInput");
     input.value = "";
@@ -372,7 +379,25 @@ function renderDashboard(data) {
   renderLevels(maxCallRow, maxPutRow, atmRow);
 
   showDashboard(true);
-  generateAISignal();
+  if (aiEnabled) {
+    generateAISignal();
+  } else {
+    showAiPrompt();
+  }
+}
+
+function showAiPrompt(errorMessage = "") {
+  const loading = document.getElementById("aiLoading");
+  loading.className = "ai-loading prompt";
+  loading.style.display = "flex";
+  loading.innerHTML = `
+    ${errorMessage ? `<span class="warn">AI signal unavailable (${escHtml(errorMessage)}) - OI data above is still valid.</span>` : ""}
+    <button class="ai-cta" id="aiRunBtn" type="button">
+      <span class="ai-cta-inner"><span class="ai-spark">&#10022;</span>${errorMessage ? "Retry with AI" : "Analyse with AI"}</span>
+    </button>
+    ${errorMessage ? "" : '<span class="ai-hint">Generates a trade plan from this CSV and saves it to history.</span>'}`;
+  document.getElementById("aiContent").classList.remove("show");
+  document.getElementById("aiRunBtn").addEventListener("click", generateAISignal);
 }
 
 function showDashboard(withCsvPanels) {
@@ -477,12 +502,18 @@ async function generateAISignal() {
 
 function setAiLoading(message) {
   const loading = document.getElementById("aiLoading");
+  loading.className = "ai-loading";
   loading.style.display = "flex";
   loading.innerHTML = `<div class="spin"></div>${escHtml(message)}`;
   document.getElementById("aiContent").classList.remove("show");
 }
 
 function showAiError(message) {
+  if (latestSnapshot) {
+    showAiPrompt(message);
+    return;
+  }
+  document.getElementById("aiLoading").className = "ai-loading";
   document.getElementById("aiLoading").style.display = "flex";
   document.getElementById("aiLoading").innerHTML =
     `<span class="warn">AI signal unavailable (${escHtml(message)}) - OI data above is still valid.</span>`;
@@ -645,6 +676,7 @@ function reset() {
   document.getElementById("uploadSection").classList.remove("hidden");
   document.getElementById("dashboard").classList.add("hidden");
   document.getElementById("fileInput").value = "";
+  document.getElementById("aiLoading").className = "ai-loading";
   document.getElementById("aiLoading").style.display = "flex";
   document.getElementById("aiLoading").innerHTML = '<div class="spin"></div>Generating and saving analysis...';
   document.getElementById("aiContent").classList.remove("show");
