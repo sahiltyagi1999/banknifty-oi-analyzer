@@ -16,70 +16,6 @@ function setInstrument(inst) {
   document.getElementById('howToInstrument').textContent = inst === 'NIFTY' ? 'NIFTY' : 'BANKNIFTY';
 }
 
-// ── API KEY MANAGEMENT ──
-let apiKey = "";
-
-function loadSavedKey() {
-  try {
-    const saved = localStorage.getItem("oi_analyzer_api_key");
-    if (saved) {
-      apiKey = saved;
-      document.getElementById("apiKeyInput").value = saved;
-      showApiStatus("ok", "KEY SAVED");
-    }
-  } catch (e) {}
-}
-
-function onApiKeyChange() {
-  const val = document.getElementById("apiKeyInput").value.trim();
-  if (!val) {
-    hideApiStatus();
-  } else if (val.startsWith("sk-ant-")) {
-    showApiStatus("ok", "LOOKS GOOD");
-  } else {
-    showApiStatus("err", "INVALID FORMAT");
-  }
-}
-
-function saveApiKey() {
-  const val = document.getElementById("apiKeyInput").value.trim();
-  if (!val) {
-    showApiStatus("err", "EMPTY KEY");
-    return;
-  }
-  if (!val.startsWith("sk-ant-")) {
-    showApiStatus("err", "INVALID FORMAT");
-    return;
-  }
-  apiKey = val;
-  try {
-    localStorage.setItem("oi_analyzer_api_key", val);
-  } catch (e) {}
-  showApiStatus("ok", "SAVED ✓");
-}
-
-function showApiStatus(type, msg) {
-  const el = document.getElementById("apiStatus");
-  el.className = `api-status ${type}`;
-  el.textContent = msg;
-}
-
-function hideApiStatus() {
-  document.getElementById("apiStatus").className = "api-status";
-}
-
-function toggleApiVisibility() {
-  const inp = document.getElementById("apiKeyInput");
-  const btn = document.getElementById("eyeBtn");
-  if (inp.type === "password") {
-    inp.type = "text";
-    btn.textContent = "🙈";
-  } else {
-    inp.type = "password";
-    btn.textContent = "👁";
-  }
-}
-
 // ── LIVE CLOCK (IST) ──
 setInterval(() => {
   const ist = new Date(
@@ -89,9 +25,6 @@ setInterval(() => {
   document.getElementById("clockEl").textContent =
     `${p(ist.getHours())}:${p(ist.getMinutes())}:${p(ist.getSeconds())} IST`;
 }, 1000);
-
-// Load saved API key on page load
-loadSavedKey();
 
 // ── DRAG & DROP ──
 const dz = document.getElementById("dropZone");
@@ -426,21 +359,10 @@ function renderDashboard(data) {
   generateAISignal(data);
 }
 
-// ── AI SIGNAL via Claude API ──
+// ── AI SIGNAL via OpenAI backend proxy ──
 async function generateAISignal(data) {
   const { rows, totalCallOI, totalPutOI, pcr, maxCallRow, maxPutRow, atmRow } =
     data;
-
-  const liveKey = document.getElementById("apiKeyInput").value.trim();
-  const keyToUse = liveKey || apiKey;
-
-  if (!keyToUse || !keyToUse.startsWith("sk-ant-")) {
-    document.getElementById("aiLoading").innerHTML =
-      `<span style="color:var(--warn);font-family:'JetBrains Mono',monospace;font-size:0.8rem">
-        ⚠ Enter your Anthropic API key above to get the full AI trade plan — OI data above is still valid.
-      </span>`;
-    return;
-  }
 
   // Build top-10 strikes by OI for richer context
   const top10 = [...rows]
@@ -508,27 +430,21 @@ Respond ONLY with valid JSON, no markdown, no extra text:
 }`;
 
   try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    const resp = await fetch("/api/analyze", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": keyToUse,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1200,
-        messages: [{ role: "user", content: prompt }],
+        prompt,
       }),
     });
 
     const d = await resp.json();
+    if (!resp.ok) throw new Error(d.error || "API error");
     if (d.error) throw new Error(d.error.message || "API error");
 
-    const raw = d.content
-      .map((i) => i.text || "")
-      .join("")
+    const raw = d.text
       .replace(/```json|```/g, "")
       .trim();
     const r = JSON.parse(raw);

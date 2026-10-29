@@ -1,6 +1,6 @@
 # Bank Nifty OI Analyzer
 
-A dark-themed, browser-based tool to analyze NSE Bank Nifty options chain CSV files and generate AI-powered trade signals using Claude.
+A dark-themed, browser-based tool to analyze NSE Bank Nifty options chain CSV files and generate AI-powered trade signals using OpenAI.
 
 ## Project Structure
 
@@ -8,8 +8,8 @@ A dark-themed, browser-based tool to analyze NSE Bank Nifty options chain CSV fi
 oi-analyzer/
 ├── index.html      ← Main page (UI structure)
 ├── style.css       ← All styling (dark trading terminal theme)
-├── app.js          ← All logic: CSV parsing, rendering, Claude API call
-├── server.py       ← Simple local HTTP server (no dependencies needed)
+├── app.js          ← Frontend logic: CSV parsing, calculations, rendering
+├── server.py       ← HTTP server, health check, and OpenAI API proxy
 └── .vscode/
     ├── launch.json ← F5 run config for VS Code
     └── settings.json ← Live Server config
@@ -31,9 +31,15 @@ oi-analyzer/
 2. Open the integrated terminal (`Ctrl+\``)
 3. Run:
    ```bash
-   python3 server.py
+   OPENAI_API_KEY=your_openai_key python3 server.py
    ```
 4. Browser opens automatically at `http://localhost:8080`
+
+Optional: set `OPENAI_MODEL` to override the default fast model:
+
+```bash
+OPENAI_MODEL=gpt-6-luna OPENAI_API_KEY=your_openai_key python3 server.py
+```
 
 ### Option 3 — F5 Debug Launch
 
@@ -46,11 +52,10 @@ oi-analyzer/
 
 ## How to Use
 
-1. **Get an Anthropic API key** (optional, for AI signals):
-   - Go to [console.anthropic.com](https://console.anthropic.com)
-   - Create an account → API Keys → Create Key
-   - Paste it in the `// ANTHROPIC API KEY` field and click **SAVE KEY**
-   - The key is stored only in your browser's localStorage
+1. **Configure OpenAI** (required for AI signals):
+   - Set `OPENAI_API_KEY` in the server environment
+   - Optional: set `OPENAI_MODEL` to change the model
+   - The API key is used only on the server and is never stored in the browser
 
 2. **Download the NSE options chain CSV**:
    - Go to [nseindia.com/option-chain](https://www.nseindia.com/option-chain)
