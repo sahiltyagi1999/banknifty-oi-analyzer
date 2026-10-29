@@ -10,6 +10,8 @@ oi-analyzer/
 ├── style.css       ← All styling (dark trading terminal theme)
 ├── app.js          ← Frontend logic: CSV parsing, calculations, rendering
 ├── server.py       ← HTTP server, health check, and OpenAI API proxy
+├── api/            ← Vercel serverless API routes
+├── vercel.json     ← Vercel rewrites for health endpoints
 └── .vscode/
     ├── launch.json ← F5 run config for VS Code
     └── settings.json ← Live Server config
@@ -17,15 +19,7 @@ oi-analyzer/
 
 ## How to Run in VS Code
 
-### Option 1 — Live Server Extension (Recommended)
-
-1. Install the **Live Server** extension by Ritwick Dey
-   - Open VS Code → Extensions (`Cmd+Shift+X`) → search `Live Server` → Install
-2. Open the `oi-analyzer` folder in VS Code (`File → Open Folder`)
-3. Right-click `index.html` in the Explorer → **"Open with Live Server"**
-4. Browser opens automatically at `http://localhost:8080`
-
-### Option 2 — Python Server (no extensions needed)
+### Option 1 — Python Server (Recommended)
 
 1. Open the `oi-analyzer` folder in VS Code
 2. Open the integrated terminal (`Ctrl+\``)
@@ -34,6 +28,17 @@ oi-analyzer/
    OPENAI_API_KEY=your_openai_key python3 server.py
    ```
 4. Browser opens automatically at `http://localhost:8080`
+
+### Option 2 — Vercel
+
+Set these environment variables in Vercel Project Settings:
+
+```bash
+OPENAI_API_KEY=your_openai_key
+OPENAI_MODEL=gpt-6-luna
+```
+
+The frontend calls `/api/analyze`, which is handled by `api/analyze.py` on Vercel.
 
 You can also create a local `.env` file:
 
