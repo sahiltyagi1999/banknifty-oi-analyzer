@@ -411,9 +411,9 @@ Rules for your response:
 - oi_analysis: 3-4 sentences on what the OI distribution tells us about WHERE market makers want price to go, mention max pain, OI walls, and any notable OI changes
 - risk_warning: the single biggest trap or risk specific to THIS ${instName} setup today
 
-Respond ONLY with valid JSON, no markdown, no extra text:
+Respond ONLY with one valid JSON object. Do not include markdown, comments, code fences, trailing commas, or any text before/after the JSON.
 {
-  "primary_direction": "BUY CALL" | "BUY PUT" | "WAIT",
+  "primary_direction": "BUY CALL",
   "suggested_strike": 55000,
   "entry_zone": "55050–55100",
   "stop_loss": 54800,
@@ -444,9 +444,7 @@ Respond ONLY with valid JSON, no markdown, no extra text:
     if (!resp.ok) throw new Error(d.error || "API error");
     if (d.error) throw new Error(d.error.message || "API error");
 
-    const raw = (d.text || "")
-      .replace(/```json|```/g, "")
-      .trim();
+    const raw = extractJsonObject(d.text || "");
     if (!raw) throw new Error("AI returned an empty trade plan.");
 
     let r;
@@ -467,6 +465,21 @@ Respond ONLY with valid JSON, no markdown, no extra text:
         AI signal unavailable (${e.message || "check API key"}) — OI data above is still valid
       </span>`;
   }
+}
+
+function extractJsonObject(text) {
+  const cleaned = text
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  if (!cleaned) return "";
+
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return cleaned;
+
+  return cleaned.slice(start, end + 1).trim();
 }
 
 async function readApiJson(resp) {

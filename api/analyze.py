@@ -40,7 +40,11 @@ class handler(BaseHTTPRequestHandler):
 
         payload = json.dumps({
             "model": OPENAI_MODEL,
-            "instructions": "You are an expert intraday options analyst. Return only valid JSON with no markdown.",
+            "instructions": (
+                "You are an expert intraday options analyst. Return exactly one "
+                "valid JSON object and nothing else. Do not use markdown, comments, "
+                "code fences, trailing commas, NaN, Infinity, undefined, or unquoted keys."
+            ),
             "input": prompt,
             "max_output_tokens": 1200,
         }).encode("utf-8")
