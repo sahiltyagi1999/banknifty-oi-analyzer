@@ -2,6 +2,7 @@ let instrument = "NIFTY";
 let authToken = localStorage.getItem("oi_auth_token") || "";
 let currentUser = localStorage.getItem("oi_username") || "";
 let latestSnapshot = null;
+let frontendEnv = {};
 
 const CONFIG = window.OI_ANALYZER_CONFIG || {};
 const API_BASE_KEY = "oi_api_base_url";
@@ -10,7 +11,8 @@ const STRIKE_RANGE = {
   BANKNIFTY: { min: 30000, max: 90000 },
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  frontendEnv = await loadFrontendEnv();
   initClock();
   bindLogin();
   bindUpload();
@@ -31,9 +33,27 @@ document.addEventListener("DOMContentLoaded", () => {
 function getApiBase() {
   return (
     localStorage.getItem(API_BASE_KEY) ||
+    frontendEnv.FRONTEND_API_BASE_URL ||
     CONFIG.apiBaseUrl ||
     "http://localhost:10000"
   ).replace(/\/$/, "");
+}
+
+async function loadFrontendEnv() {
+  try {
+    const res = await fetch(".env", { cache: "no-store" });
+    if (!res.ok) return {};
+    const text = await res.text();
+    return text.split("\n").reduce((env, line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) return env;
+      const [key, ...rest] = trimmed.split("=");
+      env[key.trim()] = rest.join("=").trim().replace(/^['"]|['"]$/g, "");
+      return env;
+    }, {});
+  } catch (error) {
+    return {};
+  }
 }
 
 function apiUrl(path) {
