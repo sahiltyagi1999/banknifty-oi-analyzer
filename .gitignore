@@ -11,6 +11,10 @@
 
 # Environment
 .env
+backend/.env
+frontend/config.local.js
 
 # Python
 __pycache__/
+.venv/
+backend/.venv/

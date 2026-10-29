@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSE OI Analyzer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">NSE Options Chain</div>
+        <h1>OI Analyzer</h1>
+      </div>
+      <div class="topbar-actions">
+        <div class="clock" id="clockEl">--:-- IST</div>
+        <div class="user-pill" id="userPill">Not logged in</div>
+        <button class="ghost-btn" id="logoutBtn" type="button">Logout</button>
+      </div>
+    </header>
+
+    <main id="loginView" class="login-grid">
+      <section class="login-panel">
+        <div class="section-label">Secure Access</div>
+        <h2>Login to analyze and save history</h2>
+        <p>Use the username and password configured in the backend environment.</p>
+        <form id="loginForm" class="login-form">
+          <label>
+            Username
+            <input id="loginUsername" name="username" autocomplete="username" required>
+          </label>
+          <label>
+            Password
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <label>
+            Backend URL
+            <input id="apiBaseInput" name="apiBase" placeholder="https://your-backend.onrender.com">
+          </label>
+          <button class="primary-btn" type="submit">Login</button>
+          <div class="form-error" id="loginError"></div>
+        </form>
+      </section>
+      <section class="setup-panel">
+        <div class="section-label">Deploy Shape</div>
+        <div class="setup-row">
+          <strong>Frontend</strong>
+          <span>Netlify static site</span>
+        </div>
+        <div class="setup-row">
+          <strong>Backend</strong>
+          <span>Render Flask API</span>
+        </div>
+        <div class="setup-row">
+          <strong>History</strong>
+          <span>MongoDB collection per login user</span>
+        </div>
+        <div class="setup-row">
+          <strong>Cron</strong>
+          <span>Hit backend <code>/health</code> every 10 minutes</span>
+        </div>
+      </section>
+    </main>
+
+    <main id="appView" class="workspace hidden">
+      <aside class="history-panel">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Saved</div>
+            <h2>Analysis History</h2>
+          </div>
+          <button class="icon-btn" id="refreshHistoryBtn" type="button" title="Refresh history">Refresh</button>
+        </div>
+        <div id="historyList" class="history-list">
+          <div class="empty-state">No saved analysis yet.</div>
+        </div>
+      </aside>
+
+      <section class="main-panel">
+        <div class="toolbar">
+          <div>
+            <div class="section-label">Instrument</div>
+            <div class="segmented">
+              <button class="seg-btn active" id="tabNifty" type="button" onclick="setInstrument('NIFTY')">Nifty 50</button>
+              <button class="seg-btn" id="tabBankNifty" type="button" onclick="setInstrument('BANKNIFTY')">Bank Nifty</button>
+            </div>
+          </div>
+          <div class="status-card">
+            <span>Backend</span>
+            <strong id="backendStatus">Checking</strong>
+          </div>
+        </div>
+
+        <section id="uploadSection" class="upload-section">
+          <label class="upload-zone" id="dropZone" for="fileInput">
+            <span class="upload-mark">CSV</span>
+            <strong>Upload NSE option-chain CSV</strong>
+            <span id="uploadSub">Nifty 50 options-chain CSV downloaded from NSE</span>
+            <input type="file" id="fileInput" accept=".csv">
+          </label>
+          <div class="help-strip">
+            Select instrument first, upload the CSV, then AI analysis will run and save automatically.
+          </div>
+        </section>
+
+        <section id="dashboard" class="dashboard hidden">
+          <div class="signal-banner" id="signalBanner">
+            <div>
+              <span id="sigTag">Market Bias</span>
+              <strong id="sigWord">--</strong>
+            </div>
+            <div class="pcr-box">
+              <span>PCR</span>
+              <strong id="pcrBig">--</strong>
+            </div>
+          </div>
+
+          <div class="metrics" id="metricsGrid"></div>
+
+          <div class="split-grid">
+            <section class="panel">
+              <div class="panel-title">Open Interest By Strike</div>
+              <div class="oi-bars" id="oiChart"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-title">Key Levels</div>
+              <div class="level-list" id="levelList"></div>
+            </section>
+          </div>
+
+          <section class="panel ai-panel">
+            <div class="panel-title">AI Trade Plan</div>
+            <div class="ai-loading" id="aiLoading">
+              <div class="spin"></div>
+              Generating and saving analysis...
+            </div>
+            <div class="ai-content" id="aiContent">
+              <div id="primaryTrade"></div>
+              <div class="trade-table-wrap" id="tradeTableWrap"></div>
+              <div class="trade-scenarios" id="tradeScenarios"></div>
+              <div class="analysis-text" id="aiAnalysis"></div>
+              <div class="why-box" id="whyBox"></div>
+              <div class="risk-box" id="riskBox"></div>
+            </div>
+          </section>
+
+          <div class="footer-actions">
+            <button class="secondary-btn" type="button" onclick="reset()">Upload New CSV</button>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

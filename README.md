@@ -1,109 +1,90 @@
 # Bank Nifty OI Analyzer
 
-A dark-themed, browser-based tool to analyze NSE Bank Nifty options chain CSV files and generate AI-powered trade signals using OpenAI.
+Frontend and backend are split so the UI can be deployed on Netlify and the API can be deployed separately on Render.
 
-## Project Structure
+## Structure
 
+```text
+banknifty-oi-analyzer/
+├── backend/
+│   ├── app.py              # Flask API: login, health, AI analysis, Mongo history
+│   ├── requirements.txt
+│   └── .env.example
+├── frontend/
+│   ├── index.html
+│   ├── app.js              # CSV parsing, dashboard rendering, history UI
+│   ├── style.css
+│   └── config.js           # Generated/overridden during Netlify build
+├── scripts/
+│   └── write_frontend_config.py
+├── render.yaml             # Render backend blueprint
+└── netlify.toml            # Netlify frontend config
 ```
-oi-analyzer/
-├── index.html      ← Main page (UI structure)
-├── style.css       ← All styling (dark trading terminal theme)
-├── app.js          ← Frontend logic: CSV parsing, calculations, rendering
-├── server.py       ← HTTP server, health check, and OpenAI API proxy
-├── api/            ← Vercel serverless API routes
-├── vercel.json     ← Vercel rewrites for health endpoints
-└── .vscode/
-    ├── launch.json ← F5 run config for VS Code
-    └── settings.json ← Live Server config
-```
 
-## How to Run in VS Code
+## Backend Env
 
-### Option 1 — Python Server (Recommended)
+Set these in Render, or copy `backend/.env.example` to `backend/.env` locally:
 
-1. Open the `oi-analyzer` folder in VS Code
-2. Open the integrated terminal (`Ctrl+\``)
-3. Run:
-   ```bash
-   OPENAI_API_KEY=your_openai_key python3 server.py
-   ```
-4. Browser opens automatically at `http://localhost:8080`
-
-### Option 2 — Vercel
-
-Set these environment variables in Vercel Project Settings:
-
-```bash
-OPENAI_API_KEY=your_openai_key
+```env
+OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=gpt-6-luna
+LOGIN_USERNAME=admin
+LOGIN_PASSWORD=change_this_password
+SECRET_KEY=change_this_to_a_long_random_string
+MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority
+MONGO_DB_NAME=oi_analyzer
+FRONTEND_ORIGIN=https://your-netlify-site.netlify.app
 ```
 
-The frontend calls `/api/analyze`, which is handled by `api/analyze.py` on Vercel.
+Cron/keep-alive URL:
 
-You can also create a local `.env` file:
+```text
+https://your-render-backend.onrender.com/health
+```
+
+## Frontend Env
+
+Set this in Netlify build environment:
+
+```env
+FRONTEND_API_BASE_URL=https://your-render-backend.onrender.com
+```
+
+Netlify uses `netlify.toml` to publish `frontend/` and generate `frontend/config.js` during build.
+
+## Run Locally
+
+Backend:
 
 ```bash
+cd backend
 cp .env.example .env
+python3 -m pip install -r requirements.txt
+python3 app.py
 ```
 
-Then edit `.env`:
+Frontend:
 
 ```bash
-OPENAI_API_KEY=your_openai_key
-# Fastest/smallest default model for low-latency AI signals.
-OPENAI_MODEL=gpt-6-luna
+cd frontend
+python3 -m http.server 8080
 ```
 
-Optional: set `OPENAI_MODEL` to override the default fastest/smallest model:
+Open:
 
-```bash
-OPENAI_MODEL=gpt-6-luna OPENAI_API_KEY=your_openai_key python3 server.py
+```text
+http://localhost:8080
 ```
 
-### Option 3 — F5 Debug Launch
+The default local backend URL is `http://localhost:10000`.
 
-1. Open the `oi-analyzer` folder in VS Code
-2. Press **F5** (or Run → Start Debugging)
-3. Select **"Run OI Analyzer Server"** if prompted
-4. Browser opens at `http://localhost:8080`
+## API
 
-> **Why a server?** You need a local HTTP server (not just opening the file directly) because the browser blocks certain features like drag-and-drop file reading when using `file://` URLs.
-
-## How to Use
-
-1. **Configure OpenAI** (required for AI signals):
-   - Set `OPENAI_API_KEY` in the server environment
-   - Optional: set `OPENAI_MODEL` to change the model
-   - The API key is used only on the server and is never stored in the browser
-
-2. **Download the NSE options chain CSV**:
-   - Go to [nseindia.com/option-chain](https://www.nseindia.com/option-chain)
-   - Select **BANKNIFTY** from the index dropdown
-   - Choose the **nearest weekly expiry** date
-   - Click the **Download (CSV)** button (top right of the table)
-
-3. **Upload the CSV**:
-   - Drag & drop the file onto the upload zone, or click **CHOOSE FILE**
-   - The dashboard renders instantly with:
-     - Market bias signal (Bullish / Bearish / Neutral) from PCR
-     - 8 key metrics (PCR, total OI, max strike levels, ATM)
-     - Visual OI bar chart for 10 strikes around ATM
-     - Key support & resistance levels
-     - AI trade plan with bull/bear scenarios (requires API key)
-
-## What the Signals Mean
-
-| PCR Range | Bias |
-|-----------|------|
-| > 1.5 | Strongly Bullish |
-| 1.2 – 1.5 | Bullish |
-| 0.9 – 1.2 | Neutral |
-| 0.7 – 0.9 | Bearish |
-| < 0.7 | Strongly Bearish |
-
-- **Max Call OI Strike** = Strong resistance (market makers defending)
-- **Max Put OI Strike** = Strong support (market makers defending)
-- **ATM Strike** = Estimated current spot price area
+- `GET /health` - public health check for cron.
+- `POST /api/login` - login with env username/password.
+- `POST /api/analyze` - authenticated AI analysis; saves each result to MongoDB.
+- `GET /api/analyses` - authenticated history list.
+- `GET /api/analyses/:id` - authenticated saved analysis detail.
 
 ## Disclaimer
 

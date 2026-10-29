@@ -1,0 +1,8 @@
+[build]
+  publish = "frontend"
+  command = "node scripts/write_frontend_config.js"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

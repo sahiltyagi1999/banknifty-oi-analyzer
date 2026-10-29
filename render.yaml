@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: banknifty-oi-analyzer-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-6-luna
+      - key: LOGIN_USERNAME
+        sync: false
+      - key: LOGIN_PASSWORD
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB_NAME
+        value: oi_analyzer
+      - key: FRONTEND_ORIGIN
+        sync: false
