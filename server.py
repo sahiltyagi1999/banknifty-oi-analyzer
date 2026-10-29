@@ -11,11 +11,28 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
+def load_env_file(path=".env"):
+    if not os.path.exists(path):
+        return
+
+    with open(path, "r", encoding="utf-8") as env_file:
+        for line in env_file:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            os.environ.setdefault(key, value)
+
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+load_env_file()
+
 PORT = int(os.environ.get("PORT", 8080))
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-6-luna")
 MAX_PROMPT_BYTES = 50000
-
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 class OIAnalyzerHandler(http.server.SimpleHTTPRequestHandler):
     HEALTH_PATHS = {"/health", "/healthz", "/api/health"}

@@ -9,5 +9,8 @@
 *.swp
 *.swo
 
+# Environment
+.env
+
 # Python
 __pycache__/

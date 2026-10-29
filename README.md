@@ -35,6 +35,19 @@ oi-analyzer/
    ```
 4. Browser opens automatically at `http://localhost:8080`
 
+You can also create a local `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env`:
+
+```bash
+OPENAI_API_KEY=your_openai_key
+OPENAI_MODEL=gpt-6-luna
+```
+
 Optional: set `OPENAI_MODEL` to override the default fast model:
 
 ```bash
