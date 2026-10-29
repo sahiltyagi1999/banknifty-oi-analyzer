@@ -12,9 +12,12 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div>
-        <div class="eyebrow">NSE Options Chain</div>
-        <h1>OI Analyzer</h1>
+      <div class="brand">
+        <div class="brand-mark">OI</div>
+        <div>
+          <div class="eyebrow">NSE Options Chain</div>
+          <h1>OI Analyzer</h1>
+        </div>
       </div>
       <div class="topbar-actions">
         <div class="clock" id="clockEl">--:-- IST</div>
@@ -24,6 +27,21 @@
     </header>
 
     <main id="loginView" class="login-grid">
+      <section class="login-hero">
+        <div class="eyebrow">Nifty 50 &middot; Bank Nifty</div>
+        <h2 class="hero-title">Read the option chain <span class="gold">in seconds.</span></h2>
+        <p>Upload the NSE option-chain CSV and get PCR, support &amp; resistance and an AI trade plan, saved to your history.</p>
+        <div class="hero-chips">
+          <span class="chip chip-bull">Support</span>
+          <span class="chip chip-bear">Resistance</span>
+          <span class="chip chip-gold">AI Trade Plan</span>
+        </div>
+        <div class="hero-bars" aria-hidden="true">
+          <i style="--h:38%"></i><i style="--h:52%"></i><i style="--h:30%"></i><i style="--h:70%"></i>
+          <i class="b" style="--h:92%"></i><i style="--h:60%"></i><i class="g" style="--h:84%"></i>
+          <i style="--h:46%"></i><i style="--h:64%"></i><i style="--h:34%"></i><i style="--h:56%"></i>
+        </div>
+      </section>
       <section class="login-panel">
         <div class="section-label">Login</div>
         <h2>Welcome back</h2>
@@ -36,11 +54,6 @@
           <label>
             Password
             <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
-          </label>
-          <button class="advanced-link" id="advancedToggle" type="button">Advanced settings</button>
-          <label class="advanced-field hidden" id="apiBaseField">
-            Backend URL
-            <input id="apiBaseInput" name="apiBase" placeholder="https://your-backend.onrender.com">
           </label>
           <button class="primary-btn" type="submit">Login</button>
           <div class="form-error" id="loginError"></div>
@@ -64,16 +77,25 @@
 
       <section class="main-panel">
         <div class="toolbar">
-          <div>
+          <div class="toolbar-group">
             <div class="section-label">Instrument</div>
             <div class="segmented">
               <button class="seg-btn active" id="tabNifty" type="button" onclick="setInstrument('NIFTY')">Nifty 50</button>
               <button class="seg-btn" id="tabBankNifty" type="button" onclick="setInstrument('BANKNIFTY')">Bank Nifty</button>
             </div>
           </div>
-          <div class="status-card">
-            <span>Backend</span>
-            <strong id="backendStatus">Checking</strong>
+          <div class="toolbar-right">
+            <div class="source-info hidden" id="sourceInfo">
+              <span>Viewing</span>
+              <strong id="sourceName">--</strong>
+            </div>
+            <div class="status-card">
+              <span>Backend</span>
+              <strong id="backendStatus">Checking</strong>
+            </div>
+            <button class="primary-btn upload-new-btn hidden" id="uploadNewBtn" type="button" title="Pick a new CSV for the selected instrument">
+              <span class="btn-icon">&#8593;</span> Upload New CSV
+            </button>
           </div>
         </div>
 
@@ -85,7 +107,9 @@
             <input type="file" id="fileInput" accept=".csv">
           </label>
           <div class="help-strip">
-            Select instrument first, upload the CSV, then AI analysis will run and save automatically.
+            <div class="step"><span>1</span>Select instrument</div>
+            <div class="step"><span>2</span>Upload NSE CSV</div>
+            <div class="step"><span>3</span>AI plan runs &amp; saves automatically</div>
           </div>
         </section>
 
@@ -103,7 +127,7 @@
 
           <div class="metrics" id="metricsGrid"></div>
 
-          <div class="split-grid">
+          <div class="split-grid" id="csvPanels">
             <section class="panel">
               <div class="panel-title">Open Interest By Strike</div>
               <div class="oi-bars" id="oiChart"></div>
@@ -131,7 +155,7 @@
           </section>
 
           <div class="footer-actions">
-            <button class="secondary-btn" type="button" onclick="reset()">Upload New CSV</button>
+            <button class="secondary-btn" type="button" onclick="reset()">Back to Upload</button>
           </div>
         </section>
       </section>

@@ -3,7 +3,7 @@ let authToken = localStorage.getItem("oi_auth_token") || "";
 let currentUser = localStorage.getItem("oi_username") || "";
 let latestSnapshot = null;
 let frontendEnv = {};
-let apiBaseOverride = "";
+let activeHistoryId = "";
 
 const CONFIG = window.OI_ANALYZER_CONFIG || {};
 const STRIKE_RANGE = {
@@ -18,9 +18,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindUpload();
   bindActions();
 
-  const apiInput = document.getElementById("apiBaseInput");
-  apiInput.value = getApiBase();
-
   if (authToken) {
     showApp();
     checkBackend();
@@ -32,7 +29,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function getApiBase() {
   return (
-    apiBaseOverride ||
     frontendEnv.BACKEND_BASE_URL ||
     frontendEnv.FRONTEND_API_BASE_URL ||
     CONFIG.apiBaseUrl ||
@@ -85,10 +81,8 @@ function bindLogin() {
     const errorEl = document.getElementById("loginError");
     errorEl.textContent = "";
 
-    const apiBase = document.getElementById("apiBaseInput").value.trim().replace(/\/$/, "");
     const username = document.getElementById("loginUsername").value.trim();
     const password = document.getElementById("loginPassword").value;
-    if (apiBase) apiBaseOverride = apiBase;
 
     try {
       const res = await fetch(apiUrl("/api/login"), {
@@ -115,7 +109,7 @@ function bindLogin() {
 
 function getLoginErrorMessage(error) {
   if (error instanceof TypeError) {
-    return `Backend unreachable at ${getApiBase()}. Start backend or check CORS/Backend URL.`;
+    return "Server unreachable. Please try again in a moment.";
   }
   return error.message || "Login failed.";
 }
@@ -123,8 +117,10 @@ function getLoginErrorMessage(error) {
 function bindActions() {
   document.getElementById("logoutBtn").addEventListener("click", logout);
   document.getElementById("refreshHistoryBtn").addEventListener("click", loadHistory);
-  document.getElementById("advancedToggle").addEventListener("click", () => {
-    document.getElementById("apiBaseField").classList.toggle("hidden");
+  document.getElementById("uploadNewBtn").addEventListener("click", () => {
+    const input = document.getElementById("fileInput");
+    input.value = "";
+    input.click();
   });
 }
 
@@ -164,6 +160,7 @@ function logout() {
   currentUser = "";
   localStorage.removeItem("oi_auth_token");
   localStorage.removeItem("oi_username");
+  reset();
   showLogin();
 }
 
@@ -200,7 +197,12 @@ function handleFile(file) {
     return;
   }
   const reader = new FileReader();
-  reader.onload = (event) => parseCSV(event.target.result);
+  reader.onload = (event) => {
+    activeHistoryId = "";
+    markActiveHistory();
+    setSource(`${instrument === "NIFTY" ? "Nifty 50" : "Bank Nifty"} · ${file.name}`);
+    parseCSV(event.target.result);
+  };
   reader.readAsText(file);
 }
 
@@ -369,9 +371,37 @@ function renderDashboard(data) {
   renderOiChart(rows, atmRow, maxCallRow, maxPutRow);
   renderLevels(maxCallRow, maxPutRow, atmRow);
 
+  showDashboard(true);
+  generateAISignal();
+}
+
+function showDashboard(withCsvPanels) {
   document.getElementById("uploadSection").classList.add("hidden");
   document.getElementById("dashboard").classList.remove("hidden");
-  generateAISignal();
+  document.getElementById("uploadNewBtn").classList.remove("hidden");
+  document.getElementById("metricsGrid").classList.toggle("hidden", !withCsvPanels);
+  document.getElementById("csvPanels").classList.toggle("hidden", !withCsvPanels);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function setSource(text) {
+  const info = document.getElementById("sourceInfo");
+  info.classList.toggle("hidden", !text);
+  document.getElementById("sourceName").textContent = text || "--";
+  document.getElementById("sourceName").title = text || "";
+}
+
+function directionClass(dir) {
+  const d = String(dir || "").toUpperCase();
+  if (d === "BUY CALL") return "bull";
+  if (d === "BUY PUT") return "bear";
+  return "warn";
+}
+
+function markActiveHistory() {
+  document.querySelectorAll(".history-item").forEach((button) => {
+    button.classList.toggle("active", button.dataset.id === String(activeHistoryId));
+  });
 }
 
 function getBias(pcr) {
@@ -398,11 +428,11 @@ function renderOiChart(rows, atmRow, maxCallRow, maxPutRow) {
       const isMaxC = row.strike === maxCallRow.strike;
       const isMaxP = row.strike === maxPutRow.strike;
       return `
-        <div class="oi-row">
+        <div class="oi-row ${isATM ? "is-atm" : ""}">
           <div class="call-num">${fmt(row.callOI)}</div>
           <div class="bar-wrap-call"><div class="bar call" style="width:${callW}%"></div></div>
           <div class="strike-label ${isATM ? "atm-tag" : ""}">
-            ${row.strike.toLocaleString()}${isATM ? " ATM" : ""}${isMaxC ? " R" : ""}${isMaxP ? " S" : ""}
+            ${row.strike.toLocaleString()}${isATM ? '<em class="tag atm">ATM</em>' : ""}${isMaxC ? '<em class="tag res">R</em>' : ""}${isMaxP ? '<em class="tag sup">S</em>' : ""}
           </div>
           <div class="bar-wrap-put"><div class="bar put" style="width:${putW}%"></div></div>
           <div class="chg ${row.putChg > 0 ? "pos" : ""}">${row.putChg > 0 ? "+" : ""}${fmt(row.putChg)}</div>
@@ -563,12 +593,12 @@ function renderHistory(items) {
   }
 
   list.innerHTML = items.map((item) => `
-    <button class="history-item" type="button" data-id="${escAttr(item.id)}">
+    <button class="history-item ${directionClass(item.primary_direction)}-item" type="button" data-id="${escAttr(item.id)}">
       <div class="history-meta">
-        <span>${escHtml(item.instrument || "-")}</span>
+        <span class="inst-chip">${escHtml(item.instrument || "-")}</span>
         <span>${formatTime(item.created_at)}</span>
       </div>
-      <div class="history-signal">${escHtml(item.primary_direction || "WAIT")}</div>
+      <div class="history-signal ${directionClass(item.primary_direction)}">${escHtml(item.primary_direction || "WAIT")}</div>
       <div class="history-meta">
         <span>Strike ${escHtml(item.suggested_strike || "-")}</span>
         <span>PCR ${escHtml(item.metrics?.pcr ?? "-")}</span>
@@ -578,6 +608,7 @@ function renderHistory(items) {
   list.querySelectorAll(".history-item").forEach((button) => {
     button.addEventListener("click", () => loadHistoryDetail(button.dataset.id));
   });
+  markActiveHistory();
 }
 
 async function loadHistoryDetail(id) {
@@ -585,6 +616,8 @@ async function loadHistoryDetail(id) {
     const res = await fetch(apiUrl(`/api/analyses/${id}`), { headers: authHeaders() });
     const data = await readApiJson(res);
     if (!res.ok) throw new Error(data.error || "Could not load analysis.");
+    activeHistoryId = id;
+    markActiveHistory();
     renderSavedAnalysis(data);
   } catch (error) {
     showAiError(error.message || "Could not load analysis.");
@@ -592,20 +625,23 @@ async function loadHistoryDetail(id) {
 }
 
 function renderSavedAnalysis(item) {
-  document.getElementById("uploadSection").classList.add("hidden");
-  document.getElementById("dashboard").classList.remove("hidden");
-  document.getElementById("metricsGrid").innerHTML = "";
-  document.getElementById("oiChart").innerHTML = '<div class="empty-state">CSV chart is only shown for the current upload.</div>';
-  document.getElementById("levelList").innerHTML = "";
+  showDashboard(false);
+  setSource(`Saved · ${item.instrument || "-"} · ${formatTime(item.created_at)}`);
+  const dirCls = directionClass(item.analysis?.primary_direction);
   document.getElementById("sigTag").textContent = `${item.instrument || "Saved"} Analysis`;
   document.getElementById("sigWord").textContent = item.analysis?.primary_direction || "Saved";
   document.getElementById("pcrBig").textContent = item.metrics?.pcr ?? "--";
-  document.getElementById("signalBanner").className = "signal-banner neut";
+  document.getElementById("signalBanner").className =
+    `signal-banner ${dirCls === "warn" ? "neut" : dirCls}`;
   renderTradeplan(item.analysis || {});
 }
 
 function reset() {
   latestSnapshot = null;
+  activeHistoryId = "";
+  markActiveHistory();
+  setSource("");
+  document.getElementById("uploadNewBtn").classList.add("hidden");
   document.getElementById("uploadSection").classList.remove("hidden");
   document.getElementById("dashboard").classList.add("hidden");
   document.getElementById("fileInput").value = "";
