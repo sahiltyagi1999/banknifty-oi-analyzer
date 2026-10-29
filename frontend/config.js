@@ -1,3 +1,3 @@
 window.OI_ANALYZER_CONFIG = {
-  apiBaseUrl: "http://localhost:10000"
+  apiBaseUrl: "https://banknifty-oi-analyzer-backend.onrender.com"
 };

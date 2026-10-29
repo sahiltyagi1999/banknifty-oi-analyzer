@@ -46,10 +46,10 @@ https://your-render-backend.onrender.com/health
 For local frontend, copy `frontend/.env.example` to `frontend/.env`:
 
 ```env
-BACKEND_BASE_URL=http://localhost:10000
+BACKEND_BASE_URL=https://banknifty-oi-analyzer-backend.onrender.com
 ```
 
-For Netlify, publish the `frontend/` folder. Because this is a static frontend and the build script has been removed, set the Render backend URL in the login screen's "Backend URL" field after deployment, or update `frontend/config.js` before deploying.
+For Netlify, publish the `frontend/` folder. The default frontend config points to the deployed Render backend.
 
 ## Run Locally
 
