@@ -51,7 +51,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .eyebrow,
@@ -73,8 +73,8 @@ h2 {
 
 h1 {
   margin-top: 6px;
-  font-size: clamp(2rem, 4vw, 3.5rem);
-  line-height: 0.95;
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
+  line-height: 1;
 }
 
 h2 {
@@ -92,13 +92,11 @@ h2 {
 .clock,
 .user-pill,
 .status-card,
-.setup-row,
 .metric,
 .level-item,
 .history-item,
 .panel,
 .login-panel,
-.setup-panel,
 .upload-zone,
 .help-strip {
   border: 1px solid var(--border);
@@ -142,15 +140,15 @@ h2 {
 }
 
 .login-grid {
+  min-height: calc(100vh - 150px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
-  gap: 20px;
-  align-items: start;
+  place-items: start center;
+  padding-top: 36px;
 }
 
-.login-panel,
-.setup-panel {
-  padding: 24px;
+.login-panel {
+  width: min(460px, 100%);
+  padding: 28px;
   box-shadow: var(--shadow);
 }
 
@@ -186,25 +184,23 @@ h2 {
   border-color: var(--accent);
 }
 
+.advanced-link {
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 0;
+  font-weight: 800;
+}
+
+.advanced-field {
+  margin-top: -2px;
+}
+
 .form-error {
   min-height: 20px;
   color: var(--warn);
   font-weight: 700;
-}
-
-.setup-panel {
-  display: grid;
-  gap: 12px;
-}
-
-.setup-row {
-  display: grid;
-  gap: 5px;
-  padding: 14px;
-}
-
-.setup-row span {
-  color: var(--muted);
 }
 
 code {

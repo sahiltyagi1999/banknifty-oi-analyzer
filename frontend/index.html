@@ -25,9 +25,9 @@
 
     <main id="loginView" class="login-grid">
       <section class="login-panel">
-        <div class="section-label">Secure Access</div>
-        <h2>Login to analyze and save history</h2>
-        <p>Use the username and password configured in the backend environment.</p>
+        <div class="section-label">Login</div>
+        <h2>Welcome back</h2>
+        <p>Sign in to analyze CSV files and view saved trade plans.</p>
         <form id="loginForm" class="login-form">
           <label>
             Username
@@ -37,32 +37,14 @@
             Password
             <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
           </label>
-          <label>
+          <button class="advanced-link" id="advancedToggle" type="button">Advanced settings</button>
+          <label class="advanced-field hidden" id="apiBaseField">
             Backend URL
             <input id="apiBaseInput" name="apiBase" placeholder="https://your-backend.onrender.com">
           </label>
           <button class="primary-btn" type="submit">Login</button>
           <div class="form-error" id="loginError"></div>
         </form>
-      </section>
-      <section class="setup-panel">
-        <div class="section-label">Deploy Shape</div>
-        <div class="setup-row">
-          <strong>Frontend</strong>
-          <span>Netlify static site</span>
-        </div>
-        <div class="setup-row">
-          <strong>Backend</strong>
-          <span>Render Flask API</span>
-        </div>
-        <div class="setup-row">
-          <strong>History</strong>
-          <span>MongoDB collection per login user</span>
-        </div>
-        <div class="setup-row">
-          <strong>Cron</strong>
-          <span>Hit backend <code>/health</code> every 10 minutes</span>
-        </div>
       </section>
     </main>
 

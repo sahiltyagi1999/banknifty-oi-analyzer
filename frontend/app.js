@@ -116,6 +116,9 @@ function bindLogin() {
 function bindActions() {
   document.getElementById("logoutBtn").addEventListener("click", logout);
   document.getElementById("refreshHistoryBtn").addEventListener("click", loadHistory);
+  document.getElementById("advancedToggle").addEventListener("click", () => {
+    document.getElementById("apiBaseField").classList.toggle("hidden");
+  });
 }
 
 function bindUpload() {
