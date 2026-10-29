@@ -38,11 +38,31 @@ APP_NAME = "banknifty-oi-analyzer"
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-6-luna")
 TOKEN_TTL_SECONDS = int(os.environ.get("TOKEN_TTL_SECONDS", str(60 * 60 * 12)))
 MAX_ROWS_FOR_AI = int(os.environ.get("MAX_ROWS_FOR_AI", "12"))
+LOCAL_FRONTEND_ORIGINS = {
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+}
+
+
+def get_allowed_origins():
+    configured = os.environ.get("FRONTEND_ORIGIN", "*").strip()
+    if configured == "*":
+        return "*"
+
+    origins = {origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()}
+    origins.update(LOCAL_FRONTEND_ORIGINS)
+    return sorted(origins)
+
 
 app = Flask(__name__)
 CORS(
     app,
-    resources={r"/api/*": {"origins": os.environ.get("FRONTEND_ORIGIN", "*")}},
+    resources={
+        r"/api/*": {"origins": get_allowed_origins()},
+        r"/health": {"origins": "*"},
+    },
     supports_credentials=False,
 )
 

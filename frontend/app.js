@@ -108,9 +108,16 @@ function bindLogin() {
       checkBackend();
       loadHistory();
     } catch (error) {
-      errorEl.textContent = error.message || "Login failed.";
+      errorEl.textContent = getLoginErrorMessage(error);
     }
   });
+}
+
+function getLoginErrorMessage(error) {
+  if (error instanceof TypeError) {
+    return `Backend unreachable at ${getApiBase()}. Start backend or check CORS/Backend URL.`;
+  }
+  return error.message || "Login failed.";
 }
 
 function bindActions() {
