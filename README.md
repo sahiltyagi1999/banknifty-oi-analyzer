@@ -45,10 +45,11 @@ Then edit `.env`:
 
 ```bash
 OPENAI_API_KEY=your_openai_key
+# Fastest/smallest default model for low-latency AI signals.
 OPENAI_MODEL=gpt-6-luna
 ```
 
-Optional: set `OPENAI_MODEL` to override the default fast model:
+Optional: set `OPENAI_MODEL` to override the default fastest/smallest model:
 
 ```bash
 OPENAI_MODEL=gpt-6-luna OPENAI_API_KEY=your_openai_key python3 server.py
