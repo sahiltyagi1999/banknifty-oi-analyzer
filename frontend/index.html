@@ -19,6 +19,10 @@
           <h1>OI Analyzer</h1>
         </div>
       </div>
+      <nav class="main-nav hidden" id="mainNav">
+        <button class="nav-btn active" type="button" data-view="oi">OI Analyzer</button>
+        <button class="nav-btn" type="button" data-view="news">News Sentiment</button>
+      </nav>
       <div class="topbar-actions">
         <div class="clock" id="clockEl">--:-- IST</div>
         <div class="user-pill" id="userPill">Not logged in</div>
@@ -77,6 +81,7 @@
 
       <section class="main-panel">
         <div class="toolbar">
+          <div class="toolbar-left">
           <div class="toolbar-group">
             <div class="section-label">Instrument</div>
             <div class="segmented">
@@ -84,10 +89,23 @@
               <button class="seg-btn" id="tabBankNifty" type="button" onclick="setInstrument('BANKNIFTY')">Bank Nifty</button>
             </div>
           </div>
+          <div class="toolbar-group">
+            <div class="section-label">CSV Type</div>
+            <div class="segmented">
+              <button class="seg-btn active" id="typeChain" type="button" title="All strikes for one expiry">Expiry &middot; Full Chain</button>
+              <button class="seg-btn" id="typeStrike" type="button" title="One strike across all expiries">Strike &middot; All Expiries</button>
+            </div>
+          </div>
+          <div class="toolbar-group hidden" id="strikeField">
+            <div class="section-label">Strike Price</div>
+            <input class="strike-input" id="strikeInput" type="text" inputmode="numeric" placeholder="Auto from file name" autocomplete="off">
+          </div>
+          </div>
           <div class="toolbar-right">
             <div class="source-info hidden" id="sourceInfo">
               <span>Viewing</span>
               <strong id="sourceName">--</strong>
+              <em class="save-badge hidden" id="saveBadge"></em>
             </div>
             <label class="ai-toggle" title="Run AI analysis automatically after upload">
               <input type="checkbox" id="aiToggle">
@@ -117,7 +135,7 @@
           <div class="help-strip">
             <div class="step"><span>1</span>Select instrument</div>
             <div class="step"><span>2</span>Upload NSE CSV</div>
-            <div class="step"><span>3</span>AI plan runs &amp; saves automatically</div>
+            <div class="step"><span>3</span>Auto-saved to history, AI plan on demand</div>
           </div>
         </section>
 
@@ -137,20 +155,25 @@
 
           <div class="split-grid" id="csvPanels">
             <section class="panel">
-              <div class="panel-title">Open Interest By Strike</div>
+              <div class="panel-title" id="oiPanelTitle">Open Interest By Strike</div>
               <div class="oi-bars" id="oiChart"></div>
             </section>
             <section class="panel">
-              <div class="panel-title">Key Levels</div>
+              <div class="panel-title" id="levelsPanelTitle">Key Levels</div>
               <div class="level-list" id="levelList"></div>
             </section>
           </div>
+
+          <section class="panel hidden" id="expiryTablePanel">
+            <div class="panel-title" id="expiryTableTitle">Expiry-wise Data</div>
+            <div class="trade-table-wrap" id="expiryTableWrap"></div>
+          </section>
 
           <section class="panel ai-panel">
             <div class="panel-title">AI Trade Plan</div>
             <div class="ai-loading" id="aiLoading">
               <div class="spin"></div>
-              Generating and saving analysis...
+              Generating AI analysis...
             </div>
             <div class="ai-content" id="aiContent">
               <div id="primaryTrade"></div>
@@ -167,6 +190,28 @@
           </div>
         </section>
       </section>
+    </main>
+
+    <main id="newsView" class="news-view hidden">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <div class="section-label">Market News</div>
+          <div class="segmented">
+            <button class="seg-btn active" id="newsTabNifty" type="button" data-inst="NIFTY">Nifty 50</button>
+            <button class="seg-btn" id="newsTabBank" type="button" data-inst="BANKNIFTY">Bank Nifty</button>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <div class="source-info hidden" id="newsUpdated">
+            <span>Updated</span>
+            <strong id="newsUpdatedAt">--</strong>
+          </div>
+          <button class="primary-btn" id="newsFetchBtn" type="button"><span class="btn-icon">&#8635;</span> Fetch Latest News</button>
+        </div>
+      </div>
+      <div id="newsBody" class="news-body">
+        <div class="empty-state">Click <strong>Fetch Latest News</strong> to load headlines and a sentiment score.</div>
+      </div>
     </main>
   </div>
 
