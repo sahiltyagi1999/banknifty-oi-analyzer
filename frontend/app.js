@@ -1139,12 +1139,17 @@ async function loadNews(forceRefresh = false) {
     const query = `instrument=${newsInstrument}${forceRefresh ? "&refresh=1" : ""}`;
     const res = await fetch(apiUrl(`/api/news?${query}`), { headers: authHeaders() });
     const data = await readApiJson(res);
-    if (!res.ok) throw new Error(data.error || "Could not load news.");
+    if (!res.ok) {
+      const failure = new Error(data.error || "Could not load news.");
+      failure.details = data.details;
+      throw failure;
+    }
     newsLoaded[newsInstrument] = true;
     newsFilter = data.scope;
     renderNews(data);
   } catch (error) {
-    body.innerHTML = `<div class="empty-state warn">${escHtml(error.message || "Could not load news.")}</div>`;
+    const details = (error.details || []).map((line) => `<div>${escHtml(line)}</div>`).join("");
+    body.innerHTML = `<div class="empty-state warn">${escHtml(error.message || "Could not load news.")}${details ? `<div class="error-details">${details}</div>` : ""}</div>`;
   } finally {
     newsLoading = false;
     btn.disabled = false;

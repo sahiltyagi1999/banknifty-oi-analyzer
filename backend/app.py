@@ -381,22 +381,38 @@ def bias_for(index):
     return "Bearish", "bear"
 
 
-def fetch_news_feed(feed):
-    category, query, inverse = feed
-    url = (
-        "https://news.google.com/rss/search?q="
-        + quote_plus(f"{query} when:2d")
-        + "&hl=en-IN&gl=IN&ceid=IN:en"
-    )
-    resp = requests.get(url, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
-    resp.raise_for_status()
-    root = ET.fromstring(resp.content)
+# Direct publisher RSS feeds, used as a fallback for the instrument's own topic
+PUBLISHER_FEEDS = {
+    "NIFTY": [
+        ("Economic Times", "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"),
+        ("Mint", "https://www.livemint.com/rss/markets"),
+    ],
+    "BANKNIFTY": [
+        ("Economic Times", "https://economictimes.indiatimes.com/industry/banking/finance/rssfeeds/13358259.cms"),
+        ("Economic Times Markets", "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"),
+        ("Mint", "https://www.livemint.com/rss/markets"),
+    ],
+}
 
+
+class NewsError(Exception):
+    def __init__(self, message, details=None):
+        super().__init__(message)
+        self.details = details or []
+
+
+def parse_rss(content, category, inverse, default_source):
+    root = ET.fromstring(content)
     items = []
     for node in list(root.iter("item"))[:NEWS_PER_FEED]:
         title = (node.findtext("title") or "").strip()
         link = (node.findtext("link") or "").strip()
         source = (node.findtext("source") or "").strip()
+        if not source:
+            for child in node:
+                if child.tag.lower().endswith("source") and (child.text or "").strip():
+                    source = child.text.strip()
+                    break
         if source and title.endswith(f" - {source}"):
             title = title[: -len(source) - 3].strip()
         if not title or not link.startswith("http"):
@@ -411,7 +427,7 @@ def fetch_news_feed(feed):
         items.append({
             "title": title,
             "link": link,
-            "source": source or "News",
+            "source": source or default_source,
             "published": published,
             "category": category,
             "inverse": inverse,
@@ -419,20 +435,49 @@ def fetch_news_feed(feed):
     return items
 
 
+def fetch_news_feed(feed, publisher_sources=()):
+    """Try Google News, then Bing News, then publisher feeds. Returns (items, errors)."""
+    category, query, inverse = feed
+    sources = [
+        ("Google News", "https://news.google.com/rss/search?q=" + quote_plus(f"{query} when:2d")
+         + "&hl=en-IN&gl=IN&ceid=IN:en"),
+        ("Bing News", "https://www.bing.com/news/search?q=" + quote_plus(query) + "&format=rss&cc=in"),
+        *publisher_sources,
+    ]
+    errors = []
+    for name, url in sources:
+        try:
+            resp = requests.get(url, timeout=6, headers={"User-Agent": "Mozilla/5.0"})
+            resp.raise_for_status()
+            items = parse_rss(resp.content, category, inverse, name)
+            if items:
+                return items, errors
+            errors.append(f"{category}/{name}: no items")
+        except Exception as exc:
+            errors.append(f"{category}/{name}: {type(exc).__name__} {str(exc)[:80]}")
+    return [], errors
+
+
 def build_news_payload(instrument):
     first = NEWS_FEEDS[instrument]
     feeds = [(first[0], first[1], False)] + NEWS_COMMON_FEEDS
 
-    def safe_fetch(feed):
+    def safe_fetch(indexed_feed):
+        idx, feed = indexed_feed
+        publishers = PUBLISHER_FEEDS[instrument] if idx == 0 else ()
         try:
-            return fetch_news_feed(feed)
-        except Exception:
-            return None
+            return fetch_news_feed(feed, publishers)
+        except Exception as exc:
+            return [], [f"{feed[0]}: {type(exc).__name__} {str(exc)[:80]}"]
 
     with ThreadPoolExecutor(max_workers=len(feeds)) as pool:
-        results = list(pool.map(safe_fetch, feeds))
-    if all(result is None for result in results):
-        raise RuntimeError("Could not reach the news source. Try again in a moment.")
+        fetched = list(pool.map(safe_fetch, enumerate(feeds)))
+    results = [items for items, _ in fetched]
+    errors = [err for _, errs in fetched for err in errs]
+    if errors:
+        print("news fetch issues:", " | ".join(errors), flush=True)
+    if not any(results):
+        raise NewsError("Could not reach any news source. Try again in a moment.", errors[:8])
 
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(hours=NEWS_MAX_AGE_HOURS)
@@ -514,7 +559,7 @@ def news():
     try:
         payload = build_news_payload(instrument)
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 502
+        return jsonify({"error": str(exc), "details": getattr(exc, "details", [])}), 502
     news_cache[instrument] = (time.time(), payload)
     return jsonify(payload)
 

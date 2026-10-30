@@ -2121,3 +2121,12 @@ code {
   color: var(--white);
   box-shadow: 0 0 16px rgba(0, 71, 171, 0.7);
 }
+
+.error-details {
+  margin-top: 10px;
+  color: var(--subtle);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+  line-height: 1.6;
+  text-align: left;
+}
